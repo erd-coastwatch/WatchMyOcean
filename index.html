@@ -152,6 +152,8 @@ function updateErddapImage() {
   document.getElementById('satellite-map').src = fullURL;
   document.getElementById('url-display').innerText = "Source URL: " + fullURL;
 }
+    window.onload = updateErddapImage;
+    
 </body>
 </html>
 
