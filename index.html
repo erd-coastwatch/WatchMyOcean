@@ -75,7 +75,7 @@
 <body>
 
 <h1>Satellite Monitoring of CalCOFI region</h1>
-<p style="text-align: center; color: #7f8c8d; margin-bottom: 25px;">Adjust coordinates to refresh all data products. C-HARMS and Sardine Habitat are automatically constrained to their regional domains.</p>
+<p style="text-align: center; color: #7f8c8d; margin-bottom: 25px;">Adjust coordinates of all data products. C-HARMS and Sardine Habitat are automatically constrained to their regional domains.</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -150,9 +150,9 @@ function updateAllMaps() {
     const sarCoords = `[(${sarSLat}):(${sarNLat})][(${sarWLon}):(${sarELon})]`;
     document.getElementById('img-sardine').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2.png?potential_habitat_classification[(last)]${sarCoords}&.draw=img&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`;
 
-    // C-HARMS Strict Limits: 30N to 44.5N, -128W to -116W
-    const chSLat = clamp(sLatRaw, 30, 44.5);
-    const chNLat = clamp(nLatRaw, 30, 44.5);
+    // C-HARMS Strict Limits: 31.3N to 44.5N, -128W to -116W
+    const chSLat = clamp(sLatRaw, 31.3, 44.5);
+    const chNLat = clamp(nLatRaw, 31.3, 44.5);
     const chWLon = clamp(wLonRaw, -128, -116);
     const chELon = clamp(eLonRaw, -128, -116);
     const chCoords = `[(${chSLat}):(${chNLat})][(${chWLon}):(${chELon})]`;
