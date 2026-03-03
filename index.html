@@ -1,109 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CalCOFI Watch </title>
+    <title>CalCOFI Watch</title>
     <style>
-    body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; }
-    h1 { text-align: center; color: #2c3e50; }
-    
-    /* This creates the grid */
-    .data-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
+        body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        
+        /* Widget Styling */
+        #erddap-widget { 
+            background: #ffffff; 
+            padding: 20px; 
+            border-radius: 8px; 
+            border: 1px solid #2c3e50; 
+            max-width: 1100px; 
+            margin: 0 auto 30px auto; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
 
-    /* Styles for each individual card */
-    .card {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        text-align: center;
-    }
+        .widget-flex {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-around;
+            gap: 15px;
+        }
 
-    .card img {
-        width: 100%; /* Makes image fit the card */
-        height: auto;
-        border: 1px solid #eee;
-        margin-bottom: 10px;
-    }
+        .input-group { flex: 1; min-width: 120px; }
+        .input-group label { display: block; font-size: 0.8em; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
-    .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
-</style>
-  
+        .update-btn { 
+            flex: 1; 
+            min-width: 200px; 
+            background: #2c3e50; 
+            color: white; 
+            border: none; 
+            padding: 10px; 
+            cursor: pointer; 
+            border-radius: 4px; 
+            font-weight: bold; 
+            height: 35px;
+            transition: background 0.3s;
+        }
+        .update-btn:hover { background: #34495e; }
+
+        /* Grid Styling */
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .card img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #eee;
+            margin-bottom: 10px;
+            background-color: #fafafa;
+        }
+
+        .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
+    </style>
 </head>
 <body>
+
 <h1>Satellite Monitoring of CalCOFI region</h1>
+<p style="text-align: center; color: #7f8c8d; margin-bottom: 25px;">Adjust coordinates to refresh all data products. C-HARMS and Sardine Habitat are automatically constrained to their regional domains.</p>
 
-<p style="text-align: center;">The most recent satellite imagery.  Exact dates vary and are given in the captions below each map.</p>  
-    
-<div class="data-grid">
-
-<div id="erddap-widget" style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; max-width: 800px; margin: 20px auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-  <h3 style="margin-top: 0; text-align: center;">Region Control Panel</h3>
-  <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
-    <div><label style="font-size: 0.8em; font-weight: bold;">South Lat</label><input type="number" id="latMin" value="29" step="0.5" style="width: 100%;"></div>
-    <div><label style="font-size: 0.8em; font-weight: bold;">North Lat</label><input type="number" id="latMax" value="39" step="0.5" style="width: 100%;"></div>
-    <div><label style="font-size: 0.8em; font-weight: bold;">West Lon</label><input type="number" id="lonMin" value="-127" step="0.5" style="width: 100%;"></div>
-    <div><label style="font-size: 0.8em; font-weight: bold;">East Lon</label><input type="number" id="lonMax" value="-116" step="0.5" style="width: 100%;"></div>
-  </div>
-  <button onclick="updateAllMaps()" style="width: 100%; background: #2c3e50; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold;">Update All CalCOFI Maps</button>
+<div id="erddap-widget">
+    <div class="widget-flex">
+        <div class="input-group">
+            <label>South Lat</label>
+            <input type="number" id="latMin" value="29" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>North Lat</label>
+            <input type="number" id="latMax" value="39" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>West Lon</label>
+            <input type="number" id="lonMin" value="-127" step="0.1">
+        </div>
+        <div class="input-group">
+            <label>East Lon</label>
+            <input type="number" id="lonMax" value="-116" step="0.1">
+        </div>
+        <button class="update-btn" onclick="updateAllMaps()">Update All Maps</button>
+    </div>
 </div>
 
 <div class="data-grid">
-    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-daily-chla" src="" alt="Loading..."></div>
-    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-weekly-chla" src="" alt="Loading..."></div>
-    <div class="card"><h3>SST</h3><img id="img-sst" src="" alt="Loading..."></div>
-    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom" src="" alt="Loading..."></div>
-    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine" src="" alt="Loading..."></div>
-    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms" src="" alt="Loading..."></div>
-    <div class="card"><h3>SSH</h3><img id="img-ssh" src="" alt="Loading..."></div>
-    <div class="card"><h3>Wind Speed</h3><img id="img-wind" src="" alt="Loading..."></div>
-    <div class="card"><h3>Salinity</h3><img id="img-sss" src="" alt="Loading..."></div>
+    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-daily-chla" alt="Loading..."></div>
+    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-weekly-chla" alt="Loading..."></div>
+    <div class="card"><h3>SST</h3><img id="img-sst" alt="Loading..."></div>
+    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom" alt="Loading..."></div>
+    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine" alt="Loading..."></div>
+    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms" alt="Loading..."></div>
+    <div class="card"><h3>SSH</h3><img id="img-ssh" alt="Loading..."></div>
+    <div class="card"><h3>Wind Speed</h3><img id="img-wind" alt="Loading..."></div>
+    <div class="card"><h3>Salinity</h3><img id="img-sss" alt="Loading..."></div>
 </div>
 
 <script>
 function updateAllMaps() {
-    // Get coords
-    const sLat = document.getElementById('latMin').value;
-    const nLat = document.getElementById('latMax').value;
-    const wLon = document.getElementById('lonMin').value;
-    const eLon = document.getElementById('lonMax').value;
+    // Get Raw User Coordinates
+    const sLatRaw = parseFloat(document.getElementById('latMin').value);
+    const nLatRaw = parseFloat(document.getElementById('latMax').value);
+    const wLonRaw = parseFloat(document.getElementById('lonMin').value);
+    const eLonRaw = parseFloat(document.getElementById('lonMax').value);
 
-    // Helper to build the constraint string
-    const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
+    // Helper function to restrict values
+    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-    // 1. Update Daily Chla
+    // Standard Coords for Global/Large Scale Datasets
+    const coords = `[(${sLatRaw}):(${nLatRaw})][(${wLonRaw}):(${eLonRaw})]`;
+
+    // --- GROUP 1: STANDARD PRODUCTS ---
     document.getElementById('img-daily-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png?chlor_a[(last)][(0.0)]${coords}&.draw=img&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`;
-
-    // 2. Update Weekly Chla
+    
     document.getElementById('img-weekly-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly.png?chlor_a[(last)][(0.0)]${coords}&.draw=img&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`;
-
-    // 3. Update SST
+    
     document.getElementById('img-sst').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SST[(last)]${coords}&.draw=img&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|&.bgColor=0xffccccff`;
-
-    // 4. Update SST Anomaly
+    
     document.getElementById('img-sst-anom').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SSTANOMALY[(last)]${coords}&.draw=img&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|&.bgColor=0xffccccff`;
-
-    // 5. Update Sardine (Note: Sardine usually flips Lat order)
-    document.getElementById('img-sardine').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2.png?potential_habitat_classification[(last)][(${sLat}):(${nLat})]${coords}&.draw=img&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`;
-
-    // 6. C-HARMS
-    document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)]${coords}&.draw=img&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`;
-
-    // 7. SSH
+    
     document.getElementById('img-ssh').src = `https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily.png?ssh[(last)]${coords}&.draw=img&.vars=longitude|latitude|ssh&.colorBar=|||-.5|.5|&.bgColor=0xffccccff`;
-
-    // 8. Wind
+    
     document.getElementById('img-wind').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day.png?wind_speed[(last)][(10.0)]${coords}&.draw=img&.vars=longitude|latitude|wind_speed&.colorBar=|||||&.bgColor=0xffccccff`;
-
-    // 9. Salinity
+    
     document.getElementById('img-sss').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.png?sss[(last)][(0.0)]${coords}&.draw=surface&.vars=longitude|latitude|sss&.colorBar=|||||&.bgColor=0xffccccff`;
+
+    // --- GROUP 2: REGIONAL PRODUCTS (WITH CLAMPING) ---
+
+    // Sardine Habitat Limits: Approx 22N to 51N, -135W to -105W
+    const sarSLat = clamp(sLatRaw, 22, 51);
+    const sarNLat = clamp(nLatRaw, 22, 51);
+    const sarWLon = clamp(wLonRaw, -135, -105);
+    const sarELon = clamp(eLonRaw, -135, -105);
+    const sarCoords = `[(${sarSLat}):(${sarNLat})][(${sarWLon}):(${sarELon})]`;
+    document.getElementById('img-sardine').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2.png?potential_habitat_classification[(last)]${sarCoords}&.draw=img&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`;
+
+    // C-HARMS Strict Limits: 30N to 44.5N, -128W to -116W
+    const chSLat = clamp(sLatRaw, 30, 44.5);
+    const chNLat = clamp(nLatRaw, 30, 44.5);
+    const chWLon = clamp(wLonRaw, -128, -116);
+    const chELon = clamp(eLonRaw, -128, -116);
+    const chCoords = `[(${chSLat}):(${chNLat})][(${chWLon}):(${chELon})]`;
+    document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)]${chCoords}&.draw=img&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`;
 }
 
-// Initial load
+// Run immediately on page load
 window.onload = updateAllMaps;
 </script>
+
+</body>
+</html>
