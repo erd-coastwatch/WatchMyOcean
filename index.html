@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CalCOFI Watch - Final Proxy Solution</title>
+    <title>CalCOFI Watch - Final Stable Version</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -18,12 +18,13 @@
         .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; }
         /* Precision calibrated overlay for ERDDAP default PNGs */
         .station-overlay { position: absolute; top: 5.5%; left: 7.4%; width: 89.2%; height: 77.2%; pointer-events: none; }
-        #status { max-width: 1200px; margin: 10px auto; padding: 10px; background: #eee; border-radius: 4px; font-size: 0.85em; color: #666; }
     </style>
 </head>
 <body>
 
 <h1>CalCOFI Satellite Monitoring</h1>
+<p style="text-align:center; color:#666;">Cruise 202304 | Lines > 84 | Stations <= 70</p>
+
 <div id="erddap-widget">
     <div class="widget-flex">
         <div class="input-group"><label>South Lat</label><input type="number" id="latMin" value="29" step="0.1"></div>
@@ -34,26 +35,41 @@
     </div>
 </div>
 
-<div id="status">Ready. Click Update to fetch data...</div>
-
 <div class="data-grid">
     <div class="card"><h3>Daily Chlorophyll</h3><div class="map-container"><img id="img-chla"><svg id="ovl-chla" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>Weekly Chlorophyll</h3><div class="map-container"><img id="img-weekly"><svg id="ovl-weekly" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
     <div class="card"><h3>SST</h3><div class="map-container"><img id="img-sst"><svg id="ovl-sst" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
-    <div class="card"><h3>Wind</h3><div class="map-container"><img id="img-wind"><svg id="ovl-wind" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
-    <div class="card"><h3>C-HARMS</h3><div class="map-container"><img id="img-charms"><svg id="ovl-charms" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>Wind Speed</h3><div class="map-container"><img id="img-wind"><svg id="ovl-wind" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>C-HARMS (PN)</h3><div class="map-container"><img id="img-charms"><svg id="ovl-charms" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
 </div>
 
 <script>
-async function updateAllMaps() {
+// HARD-CODED STATION LIST (Extracted from Cruise 202304, Line > 84, Stn <= 70)
+const stationData = [
+    {lat: 34.448, lon: -120.518, id: "86.7 33"}, {lat: 34.315, lon: -120.789, id: "86.7 40"}, 
+    {lat: 34.148, lon: -121.127, id: "86.7 45"}, {lat: 33.982, lon: -121.464, id: "86.7 50"},
+    {lat: 33.815, lon: -121.802, id: "86.7 55"}, {lat: 33.648, lon: -122.138, id: "86.7 60"},
+    {lat: 33.315, lon: -122.812, id: "86.7 70"}, {lat: 33.945, lon: -118.412, id: "90.0 28"},
+    {lat: 33.845, lon: -118.615, id: "90.0 30"}, {lat: 33.745, lon: -118.818, id: "90.0 35"},
+    {lat: 33.578, lon: -119.156, id: "90.0 37"}, {lat: 33.478, lon: -119.358, id: "90.0 45"},
+    {lat: 33.245, lon: -119.830, id: "90.0 53"}, {lat: 33.078, lon: -120.168, id: "90.0 60"},
+    {lat: 32.745, lon: -120.842, id: "90.0 70"}, {lat: 32.952, lon: -117.318, id: "93.3 26"},
+    {lat: 32.902, lon: -117.418, id: "93.3 28"}, {lat: 32.835, lon: -117.554, id: "93.3 30"},
+    {lat: 32.735, lon: -117.757, id: "93.3 35"}, {lat: 32.568, lon: -118.094, id: "93.3 45"},
+    {lat: 32.402, lon: -118.431, id: "93.3 50"}, {lat: 32.068, lon: -119.105, id: "93.3 60"},
+    {lat: 31.735, lon: -119.778, id: "93.3 70"}
+];
+
+function updateAllMaps() {
     const sLat = parseFloat(document.getElementById('latMin').value);
     const nLat = parseFloat(document.getElementById('latMax').value);
     const wLon = parseFloat(document.getElementById('lonMin').value);
     const eLon = parseFloat(document.getElementById('lonMax').value);
-    const status = document.getElementById('status');
 
-    status.innerText = "Step 1: Updating Satellite Images...";
+    // Update Images
     const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
     document.getElementById('img-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`;
+    document.getElementById('img-weekly').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly.png?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`;
     document.getElementById('img-sst').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST`;
     document.getElementById('img-wind').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day.png?wind_speed[(last)][(10.0)]${coords}`;
 
@@ -61,52 +77,31 @@ async function updateAllMaps() {
     const cWLon = Math.max(-127.5, wLon), cELon = Math.min(-117, eLon);
     document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)][(${cSLat}):(${cNLat})][(${cWLon}):(${cELon})]`;
 
-    status.innerText = "Step 2: Fetching Station Data (Via CORS Proxy)...";
-    // Using a public CORS proxy to bypass security blocks
-    const erddapUrl = `https://coastwatch.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIstns.csv?longitude,latitude&cruise=%22202304%22&line>84&station<=70`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(erddapUrl)}`;
-
-    try {
-        const response = await fetch(proxyUrl);
-        const json = await response.json();
-        const csvData = json.contents;
-        const lines = csvData.split('\n').slice(2); // Skip header rows
+    // Draw Static Overlays
+    const overlays = ['chla', 'weekly', 'sst', 'wind', 'charms'];
+    overlays.forEach(id => {
+        const svg = document.getElementById('ovl-' + id);
+        if(!svg) return;
+        svg.innerHTML = '';
         
-        let stations = [];
-        lines.forEach(line => {
-            const parts = line.split(',');
-            if (parts.length >= 2) {
-                stations.push({ lon: parseFloat(parts[0]), lat: parseFloat(parts[1]) });
+        let curSLat = sLat, curNLat = nLat, curWLon = wLon, curELon = eLon;
+        if (id === 'charms') { curSLat = cSLat; curNLat = cNLat; curWLon = cWLon; curELon = cELon; }
+
+        stationData.forEach(st => {
+            const x = ((st.lon - curWLon) / (curELon - curWLon)) * 100;
+            const y = 100 - (((st.lat - curSLat) / (curNLat - curSLat)) * 100);
+            
+            if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+                const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                c.setAttribute("cx", x); c.setAttribute("cy", y);
+                c.setAttribute("r", "1.5"); c.setAttribute("fill", "#ffff00");
+                c.setAttribute("stroke", "black"); c.setAttribute("stroke-width", "0.5");
+                svg.appendChild(c);
             }
         });
-
-        status.innerText = `Step 3: Drawing ${stations.length} Stations...`;
-        
-        ['chla', 'sst', 'wind', 'charms'].forEach(id => {
-            const svg = document.getElementById('ovl-' + id);
-            svg.innerHTML = '';
-            let lMin = sLat, lMax = nLat, wMin = wLon, wMax = eLon;
-            if (id === 'charms') { lMin = cSLat; lMax = cNLat; wMin = cWLon; wMax = cELon; }
-
-            stations.forEach(st => {
-                const x = ((st.lon - wMin) / (wMax - wMin)) * 100;
-                const y = 100 - (((st.lat - lMin) / (lMax - lMin)) * 100);
-                if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
-                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                    rect.setAttribute("x", x-1); rect.setAttribute("y", y-1);
-                    rect.setAttribute("width", "2"); rect.setAttribute("height", "2");
-                    rect.setAttribute("fill", "yellow"); rect.setAttribute("stroke", "black");
-                    rect.setAttribute("stroke-width", "0.5");
-                    svg.appendChild(rect);
-                }
-            });
-        });
-        status.innerText = "Success: Maps and Stations Updated.";
-    } catch (err) {
-        status.innerText = "Error: Proxy failed to fetch station data.";
-        console.error(err);
-    }
+    });
 }
+
 window.onload = updateAllMaps;
 </script>
 </body>
