@@ -1,128 +1,90 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>CalCOFI Watch - Interactive</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+    <meta charset="UTF-8">
+    <title>CalCOFI Watch</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
-        body { margin: 0; padding: 0; font-family: sans-serif; background: #f0f4f8; }
-        #header { background: #2c3e50; color: white; padding: 10px 20px; text-align: center; }
-        /* Make the map fill the screen */
-        #map { height: calc(100vh - 80px); width: 100%; }
-        .legend { background: white; padding: 10px; line-height: 18px; color: #555; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); }
+        body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        
+        #erddap-widget { 
+            background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #2c3e50; 
+            max-width: 1200px; margin: 0 auto 30px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+        }
+
+        .widget-flex { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+        .input-group { flex: 1; }
+        .input-group label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        
+        /* Each map container is now a real Leaflet div */
+        .map-box { height: 400px; width: 100%; border: 1px solid #eee; border-radius: 4px; background: #fafafa; }
+        
+        .card h3 { margin: 10px 0 5px; color: #34495e; }
+        .btn { background: #2c3e50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="header">
-    <h2 style="margin:0;">CalCOFI Watch: Interactive Satellite & Survey Mapping</h2>
+<h1>Satellite Monitoring of CalCOFI region</h1>
+
+<div id="erddap-widget">
+    <div class="widget-flex">
+        <div class="input-group"><label>South Lat</label><input type="number" id="latMin" value="29"></div>
+        <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39"></div>
+        <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127"></div>
+        <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116"></div>
+        <button class="btn" onclick="updateAll()">Update All Maps</button>
+    </div>
 </div>
 
-<div id="map"></div>
+<div class="data-grid">
+    <div class="card"><h3>Daily Chlorophyll</h3><div id="map-chla" class="map-box"></div></div>
+    <div class="card"><h3>SST</h3><div id="map-sst" class="map-box"></div></div>
+    <div class="card"><h3>Salinity</h3><div id="map-salt" class="map-box"></div></div>
+    <div class="card"><h3>SST Anomaly</h3><div id="map-anom" class="map-box"></div></div>
+</div>
 
 <script>
-    // 2. Initialize the Map centered on the CalCOFI region
-    var map = L.map('map').setView([33.5, -121.0], 7);
+// Station Data
+const stations = [
+    {lat: 32.95637, lon: -117.30538}, {lat: 32.94905, lon: -117.27357}, {lat: 33.24350, lon: -117.46542},
+    {lat: 32.91304, lon: -117.39438}, {lat: 32.84637, lon: -117.53122}, {lat: 32.67971, lon: -117.87286},
+    {lat: 32.51304, lon: -118.21386}, {lat: 32.34637, lon: -118.55423}, {lat: 32.17971, lon: -118.89396},
+    {lat: 32.01304, lon: -119.23306}, {lat: 31.84637, lon: -119.57154}, {lat: 31.51304, lon: -120.24666},
+    {lat: 32.08462, lon: -120.63872}, {lat: 32.41795, lon: -119.95935}, {lat: 32.65128, lon: -119.48228},
+    {lat: 32.91795, lon: -118.93551}, {lat: 33.18462, lon: -118.38708}, {lat: 33.25128, lon: -118.24971},
+    {lat: 33.41795, lon: -117.90582}, {lat: 33.48462, lon: -117.76808}, {lat: 33.49462, lon: -117.74741},
+    {lat: 33.88953, lon: -118.49033}, {lat: 33.82286, lon: -118.62873}, {lat: 34.02136, lon: -118.83413},
+    {lat: 33.65619, lon: -118.97425}, {lat: 33.48953, lon: -119.31910}, {lat: 33.32286, lon: -119.66327},
+    {lat: 33.15619, lon: -120.00678}, {lat: 32.98953, lon: -120.34964}, {lat: 32.65619, lon: -121.03339}
+];
 
-    // 3. Add a Base Layer (Street Map or Satellite)
-    var baseOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+// Initialize 4 Map objects
+const mapIds = ['map-chla', 'map-sst', 'map-salt', 'map-anom'];
+const maps = {};
 
-    // 4. Define ERDDAP WMS Layers
-    // We use the ERDDAP WMS service which tiles the data automatically
-    var erddapWmsUrl = "https://coastwatch.pfeg.noaa.gov/erddap/wms/nesdisVHNnoaa20chlaDaily/request";
+mapIds.forEach(id => {
+    maps[id] = L.map(id, { attributionControl: false, zoomControl: false });
+    // Add a simple grayscale base so we can see the coast
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(maps[id]);
+});
 
-    var dailyChla = L.tileLayer.wms("https://coastwatch.pfeg.noaa.gov/erddap/wms/nesdisVHNnoaa20chlaDaily/request", {
-        layers: 'nesdisVHNnoaa20chlaDaily:chlor_a',
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        attribution: "NOAA ERDDAP",
-        styles: 'boxfill/Rainbow2',
-        opacity: 0.7
-    }).addTo(map);
+function updateAll() {
+    const sLat = parseFloat(document.getElementById('latMin').value);
+    const nLat = parseFloat(document.getElementById('latMax').value);
+    const wLon = parseFloat(document.getElementById('lonMin').value);
+    const eLon = parseFloat(document.getElementById('lonMax').value);
+    
+    const bounds = [[sLat, wLon], [nLat, eLon]];
 
-    var sst = L.tileLayer.wms("https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request", {
-        layers: 'NOAA_DHW:CRW_SST',
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        styles: 'boxfill/CoolRobot',
-        opacity: 0.7
-    });
-
-    var salinity = L.tileLayer.wms("https://coastwatch.pfeg.noaa.gov/erddap/wms/wvcharmV3_3day_LonPM180/request", {
-        layers: 'wvcharmV3_3day_LonPM180:salinity',
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        styles: 'boxfill/RedWhiteBlue',
-        opacity: 0.7
-    });
-
-    // 5. Add your Stations
-    var stationList = [
-        {lat: 32.95637, lon: -117.30538, name: "Sta 1"},
-        {lat: 32.94905, lon: -117.27357, name: "Sta 2"},
-        {lat: 33.24350, lon: -117.46542, name: "Sta 3"},
-        {lat: 32.91304, lon: -117.39438, name: "Sta 4"},
-        {lat: 32.84637, lon: -117.53122, name: "Sta 5"},
-        {lat: 32.67971, lon: -117.87286, name: "Sta 6"},
-        {lat: 32.51304, lon: -118.21386, name: "Sta 7"},
-        {lat: 32.34637, lon: -118.55423, name: "Sta 8"},
-        {lat: 32.17971, lon: -118.89396, name: "Sta 9"},
-        {lat: 32.01304, lon: -119.23306, name: "Sta 10"},
-        {lat: 31.84637, lon: -119.57154, name: "Sta 11"},
-        {lat: 31.51304, lon: -120.24666, name: "Sta 12"},
-        {lat: 32.08462, lon: -120.63872, name: "Sta 13"},
-        {lat: 32.41795, lon: -119.95935, name: "Sta 14"},
-        {lat: 32.65128, lon: -119.48228, name: "Sta 15"},
-        {lat: 32.91795, lon: -118.93551, name: "Sta 16"},
-        {lat: 33.18462, lon: -118.38708, name: "Sta 17"},
-        {lat: 33.25128, lon: -118.24971, name: "Sta 18"},
-        {lat: 33.41795, lon: -117.90582, name: "Sta 19"},
-        {lat: 33.48462, lon: -117.76808, name: "Sta 20"},
-        {lat: 33.49462, lon: -117.74741, name: "Sta 21"},
-        {lat: 33.88953, lon: -118.49033, name: "Sta 22"},
-        {lat: 33.82286, lon: -118.62873, name: "Sta 23"},
-        {lat: 34.02136, lon: -118.83413, name: "Sta 24"},
-        {lat: 33.65619, lon: -118.97425, name: "Sta 25"},
-        {lat: 33.48953, lon: -119.31910, name: "Sta 26"},
-        {lat: 33.32286, lon: -119.66327, name: "Sta 27"},
-        {lat: 33.15619, lon: -120.00678, name: "Sta 28"},
-        {lat: 32.98953, lon: -120.34964, name: "Sta 29"},
-        {lat: 32.65619, lon: -121.03339, name: "Sta 30"}
-    ];
-
-    var stationLayer = L.layerGroup();
-    stationList.forEach(function(st) {
-        L.circleMarker([st.lat, st.lon], {
-            radius: 5,
-            fillColor: "#ffcc00",
-            color: "#000",
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.8
-        }).bindPopup(st.name).addTo(stationLayer);
-    });
-    stationLayer.addTo(map);
-
-    // 6. Layer Controls
-    var overlayMaps = {
-        "Daily Chlorophyll": dailyChla,
-        "Sea Surface Temp": sst,
-        "C-HARMS Salinity": salinity,
-        "Cruise Stations": stationLayer
-    };
-
-    L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
-
-</script>
-
-</body>
-</html>
+    // Define specific Image URLs (using .png so they always load)
+    const urls = {
+        'map-chla': `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png?chlor_a[(last)][(0.0)][(${sLat}):(${nLat})][(${wLon}):(${eLon})]&.draw=surface&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||||`,
+        'map-sst': `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SST[(last)][(${sLat}):(${nLat})][(${wLon}):(${eLon})]&.draw=surface&.vars=longitude|latitude|CRW_SST&.colorBar=|||||`,
+        'map-salt': `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?salinity[(last)][(${Math.max(31.3, sLat)}):(${Math.min(43, nLat)})][(${Math.max(-127.5, wLon)}):(${
