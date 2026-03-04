@@ -14,14 +14,16 @@
         .input-group { flex: 1; }
         .input-group label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 5px; color: #34495e; }
         .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        .update-btn { background: #2c3e50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        
+        .button-group { display: flex; gap: 8px; flex: 0.5; }
+        .update-btn { flex: 2; background: #2c3e50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .reset-btn { flex: 1; background: #95a5a6; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
 
         .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; margin-bottom: 10px; }
+        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; margin-bottom: 10px; min-height: 200px; }
         .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
         .card a { color: #3498db; text-decoration: none; font-weight: bold; font-size: 0.9em; }
-        .card a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -34,7 +36,10 @@
         <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39" step="0.1"></div>
         <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127" step="0.1"></div>
         <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116" step="0.1"></div>
-        <button class="update-btn" onclick="updateAllMaps()">Update All Maps</button>
+        <div class="button-group">
+            <button class="update-btn" onclick="updateAllMaps()">Update</button>
+            <button class="reset-btn" onclick="resetDefaults()">Reset</button>
+        </div>
     </div>
 </div>
 
@@ -52,16 +57,23 @@
 </div>
 
 <script>
+function resetDefaults() {
+    document.getElementById('latMin').value = 29;
+    document.getElementById('latMax').value = 39;
+    document.getElementById('lonMin').value = -127;
+    document.getElementById('lonMax').value = -116;
+    updateAllMaps();
+}
+
 function updateAllMaps() {
     const sLat = document.getElementById('latMin').value;
     const nLat = document.getElementById('latMax').value;
-    const wLon = document.getElementById('lonMin').value);
+    const wLon = document.getElementById('lonMin').value;
     const eLon = document.getElementById('lonMax').value;
 
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
     const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
     
-    // C-HARMS Specific Bounds
     const charmsCoords = `[(${clamp(sLat, 31.3, 43)}):(${clamp(nLat, 31.3, 43)})][(${clamp(wLon, -127.5, -117)}):(${clamp(eLon, -127.5, -117)})]`;
 
     function setContent(id, baseUrl, gridPart) {
@@ -69,12 +81,10 @@ function updateAllMaps() {
         document.getElementById('lnk-' + id).href = baseUrl + ".graph" + gridPart;
     }
 
+    // Products
     setContent('chla-d', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
     setContent('chla-w', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
-    
-    // SST updated with 10-22 degree limit
     setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|`);
-    
     setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|`);
     setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', `?wind_speed[(last)][(10.0)]${coords}`);
     setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', `?potential_habitat_classification[(last)]${coords}`);
