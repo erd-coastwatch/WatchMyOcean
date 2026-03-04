@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CalCOFI Watch - Fixed Overlays</title>
+    <title>CalCOFI Watch - Final Integration</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -20,7 +20,7 @@
 
         .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; min-height: 250px; }
+        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; min-height: 300px; }
         .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
         .card a { color: #3498db; text-decoration: none; font-weight: bold; font-size: 0.85em; }
     </style>
@@ -62,18 +62,18 @@ function updateAllMaps() {
 
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-    // Refined Table Overlay Logic - Variables from erdCalCOFIstns
-    function getStationLogic(minL, maxL, minO, maxO) {
-        return `&.markerType=circle&.markerSize=6&.markerColor=0xFFFF00&.markerOutlineColor=0x000000` +
-               `&.tDatasetID=erdCalCOFIstns&.tXVar=longitude&.tYVar=latitude` + 
+    // Refined Mixed Mode Parameters: Order Matters
+    function getMixerParams(minL, maxL, minO, maxO) {
+        return `&.tDatasetID=erdCalCOFIstns` +
+               `&.tXVar=longitude&.tYVar=latitude` + 
                `&.tFilter=(cruise=%22202304%22,line>84,station<=70)` + 
+               `&.markerType=plus&.markerSize=10&.markerColor=0xFF0000` + // Red Plus for high visibility
                `&.latMin=${minL}&.latMax=${maxL}&.lonMin=${minO}&.lonMax=${maxO}&.draw=mixed`;
     }
 
     function setContent(id, baseUrl, gridVar, extraDims, colorBar, isCharms = false) {
         let fSLat = sLat, fNLat = nLat, fWLon = wLon, fELon = eLon;
 
-        // Strict C-HARMS Clamping
         if (isCharms) {
             fSLat = clamp(sLat, 31.3, 43);
             fNLat = clamp(nLat, 31.3, 43);
@@ -82,13 +82,12 @@ function updateAllMaps() {
         }
 
         const gridPart = `?${gridVar}[(last)]${extraDims}[(${fSLat}):(${fNLat})][(${fWLon}):(${fELon})]&.vars=longitude|latitude|${gridVar}&.colorBar=${colorBar}`;
-        const url = baseUrl + ".png" + gridPart + getStationLogic(fSLat, fNLat, fWLon, fELon);
+        const finalUrl = baseUrl + ".png" + gridPart + getMixerParams(fSLat, fNLat, fWLon, fELon);
         
-        document.getElementById('img-' + id).src = url;
-        document.getElementById('lnk-' + id).href = baseUrl + ".graph" + gridPart + getMixer(fSLat, fNLat, fWLon, fELon);
+        document.getElementById('img-' + id).src = finalUrl;
+        document.getElementById('lnk-' + id).href = baseUrl + ".graph" + gridPart + getMixerParams(fSLat, fNLat, fWLon, fELon);
     }
 
-    // Product Definitions
     setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', 'chlor_a', '[(0.0)]', 'Rainbow2|||.03|5|');
     setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', 'chlor_a', '[(0.0)]', 'Rainbow2|||.03|5|');
     setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', 'CRW_SST', '', '|||10|22|');
@@ -97,18 +96,8 @@ function updateAllMaps() {
     setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', 'ssh', '', '|||-.5|.5|');
     setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', 'wind_speed', '[(10.0)]', '|||0|15|');
     setContent('sss', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day', 'sss', '[(0.0)]', '|||31|35|');
-    
-    // C-HARMS (Clamped to specified bounds)
     setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'pseudo_nitzschia', '', '', true);
     setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'salinity', '', '|||31|35|', true);
-}
-
-// Fixed helper for the Link URL
-function getMixer(minL, maxL, minO, maxO) {
-    return `&.markerType=circle&.markerSize=6&.markerColor=0xFFFF00&.markerOutlineColor=0x000000` +
-           `&.tDatasetID=erdCalCOFIstns&.tXVar=longitude&.tYVar=latitude` + 
-           `&.tFilter=(cruise=%22202304%22,line>84,station<=70)` + 
-           `&.latMin=${minL}&.latMax=${maxL}&.lonMin=${minO}&.lonMax=${maxO}&.draw=mixed`;
 }
 
 window.onload = updateAllMaps;
