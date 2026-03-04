@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CalCOFI Watch - Geographic Alignment</title>
+    <title>CalCOFI Watch - Fixed Alignment</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -19,14 +19,13 @@
         .update-btn { background: #2c3e50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
         .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; }
         .card { background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        /* The map height is set; Leaflet will fill this with the satellite image */
-        .map-box { height: 450px; width: 100%; background: #fafafa; border: 1px solid #eee; }
+        .map-box { height: 400px; width: 100%; background: #1a1a1a; border: 1px solid #eee; }
         .card h3 { margin: 10px 0; font-size: 1.1em; color: #34495e; }
     </style>
 </head>
 <body>
 
-<h1>Satellite Monitoring of CalCOFI region</h1>
+<h1>CalCOFI Satellite Monitoring</h1>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -34,12 +33,11 @@
         <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39"></div>
         <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127"></div>
         <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116"></div>
-        <button class="update-btn" onclick="updateAll()">Update Maps</button>
+        <button class="update-btn" onclick="updateAll()">Update All Maps</button>
     </div>
 </div>
 
-<div class="data-grid" id="grid">
-    </div>
+<div class="data-grid" id="grid"></div>
 
 <script>
 const stations = [
@@ -56,21 +54,21 @@ const stations = [
 ];
 
 const config = [
-    { id: 'daily-chla', title: 'Daily Chlorophyll', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png', var: 'chlor_a', colors: 'Rainbow2|||.03|5|' },
-    { id: 'weekly-chla', title: 'Weekly Chlorophyll', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly.png', var: 'chlor_a', colors: 'Rainbow2|||.03|5|' },
-    { id: 'sst', title: 'SST', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png', var: 'CRW_SST', colors: '|||10|22|' },
-    { id: 'sst-anom', title: 'SST Anomaly', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png', var: 'CRW_SSTANOMALY', colors: 'BlueWhiteRed|||-2|2|' },
-    { id: 'sardine', title: 'Sardine Habitat', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2.png', var: 'potential_habitat_classification', colors: '' },
-    { id: 'charms', title: 'C-HARMS (PN)', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png', var: 'pseudo_nitzschia', colors: '', charms: true },
-    { id: 'charms-salt', title: 'C-HARMS (Salinity)', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png', var: 'salinity', colors: '|||31|35|', charms: true },
-    { id: 'ssh', title: 'SSH', url: 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily.png', var: 'ssh', colors: '' },
-    { id: 'wind', title: 'Wind Speed', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day.png', var: 'wind_speed', colors: '' },
-    { id: 'sss', title: 'Salinity (SMOS)', url: 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.png', var: 'sss', colors: '' }
+    { id: 'daily-chla', title: 'Daily Chlorophyll', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/nesdisVHNnoaa20chlaDaily/request', layer: 'nesdisVHNnoaa20chlaDaily:chlor_a', style: 'boxfill/Rainbow2' },
+    { id: 'weekly-chla', title: 'Weekly Chlorophyll', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/nesdisVHNnoaa20chlaWeekly/request', layer: 'nesdisVHNnoaa20chlaWeekly:chlor_a', style: 'boxfill/Rainbow2' },
+    { id: 'sst', title: 'SST', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request', layer: 'NOAA_DHW:CRW_SST', style: 'boxfill/CoolRobot' },
+    { id: 'sst-anom', title: 'SST Anomaly', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/NOAA_DHW/request', layer: 'NOAA_DHW:CRW_SSTANOMALY', style: 'boxfill/BlueWhiteRed' },
+    { id: 'sardine', title: 'Sardine Habitat', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/sardine_habitat_viirs_v2/request', layer: 'sardine_habitat_viirs_v2:potential_habitat_classification', style: 'boxfill/Rainbow' },
+    { id: 'charms', title: 'C-HARMS (PN)', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/wvcharmV3_3day_LonPM180/request', layer: 'wvcharmV3_3day_LonPM180:pseudo_nitzschia', style: 'boxfill/Rainbow' },
+    { id: 'charms-salt', title: 'C-HARMS (Salinity)', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/wvcharmV3_3day_LonPM180/request', layer: 'wvcharmV3_3day_LonPM180:salinity', style: 'boxfill/RedWhiteBlue' },
+    { id: 'ssh', title: 'SSH', host: 'https://coastwatch.noaa.gov/erddap/wms/noaacweddymesiplusdaily/request', layer: 'noaacweddymesiplusdaily:ssh', style: 'boxfill/Rainbow' },
+    { id: 'wind', title: 'Wind Speed', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/erdQCwindproducts1day/request', layer: 'erdQCwindproducts1day:wind_speed', style: 'boxfill/Rainbow' },
+    { id: 'sss', title: 'Salinity (SMOS)', host: 'https://coastwatch.pfeg.noaa.gov/erddap/wms/coastwatchSMOSv662SSS3day/request', layer: 'coastwatchSMOSv662SSS3day:sss', style: 'boxfill/Rainbow' }
 ];
 
 const maps = {};
 
-// Create the cards
+// Build the grid
 const grid = document.getElementById('grid');
 config.forEach(c => {
     const card = document.createElement('div');
@@ -78,8 +76,8 @@ config.forEach(c => {
     card.innerHTML = `<h3>${c.title}</h3><div id="map-${c.id}" class="map-box"></div>`;
     grid.appendChild(card);
     
-    // Initialize Leaflet for this card
-    maps[c.id] = L.map(`map-${c.id}`, { attributionControl: false, zoomControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false });
+    // Initialize map for this card
+    maps[c.id] = L.map(`map-${c.id}`, { attributionControl: false, zoomControl: false });
 });
 
 function updateAll() {
@@ -88,32 +86,35 @@ function updateAll() {
     const wLon = parseFloat(document.getElementById('lonMin').value);
     const eLon = parseFloat(document.getElementById('lonMax').value);
 
+    const bounds = [[sLat, wLon], [nLat, eLon]];
+
     config.forEach(c => {
         const m = maps[c.id];
-        let curSLat = sLat, curNLat = nLat, curWLon = wLon, curELon = eLon;
+        m.eachLayer(layer => m.removeLayer(layer)); // Clear existing layers
 
-        // Apply C-HARMS specific clamping
-        if (c.charms) {
-            curSLat = Math.max(31.3, sLat); curNLat = Math.min(43, nLat);
-            curWLon = Math.max(-127.5, wLon); curELon = Math.min(-117, eLon);
-        }
+        // 1. Add WMS Tile Layer (The Satellite Data)
+        L.tileLayer.wms(c.host, {
+            layers: c.layer,
+            format: 'image/png',
+            transparent: true,
+            styles: c.style,
+            version: '1.3.0',
+            crs: L.CRS.EPSG4326, // Force coordinate alignment
+            uppercase: true
+        }).addTo(m);
 
-        const bounds = [[curSLat, curWLon], [curNLat, curELon]];
-        m.fitBounds(bounds);
-
-        // Remove old layers
-        m.eachLayer(layer => m.removeLayer(layer));
-
-        // Add Satellite Image Overlay - This maps it geographically!
-        const params = `?${c.var}[(last)]${c.charms ? '' : '[(0.0)]'}[(${curSLat}):(${curNLat})][(${curWLon}):(${curELon})]&.draw=surface&.vars=longitude|latitude|${c.var}&.colorBar=${c.colors}`;
-        L.imageOverlay(c.url + params, bounds, { opacity: 1.0 }).addTo(m);
-
-        // Add Stations exactly on their coordinates
+        // 2. Add Stations (Yellow Dots)
         stations.forEach(st => {
-            if (st.lat >= curSLat && st.lat <= curNLat && st.lon >= curWLon && st.lon <= curELon) {
-                L.circleMarker([st.lat, st.lon], { radius: 3, color: 'black', fillColor: 'yellow', fillOpacity: 1, weight: 1 }).addTo(m);
-            }
+            L.circleMarker([st.lat, st.lon], { 
+                radius: 4, 
+                fillColor: "yellow", 
+                color: "black", 
+                weight: 1, 
+                fillOpacity: 1 
+            }).addTo(m);
         });
+
+        m.fitBounds(bounds);
     });
 }
 
