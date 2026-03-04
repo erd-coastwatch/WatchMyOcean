@@ -8,109 +8,39 @@
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
         p.subtitle { text-align: center; color: #7f8c8d; margin-bottom: 25px; font-size: 0.9em; }
         
-        /* Widget Styling */
         #erddap-widget { 
-            background: #ffffff; 
-            padding: 15px; 
-            border-radius: 8px; 
-            border: 1px solid #2c3e50; 
-            max-width: 1200px; 
-            margin: 0 auto 30px auto; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #2c3e50; 
+            max-width: 1200px; margin: 0 auto 30px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
         }
 
-        .widget-flex {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: nowrap;
-        }
-
+        .widget-flex { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: nowrap; }
         .input-group { flex: 1; }
         .input-group label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 5px; color: #34495e; }
         .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-
         .button-group { display: flex; gap: 8px; flex: 1.5; }
         
-        .update-btn { 
-            flex: 2; 
-            background: #2c3e50; 
-            color: white; 
-            border: none; 
-            padding: 10px; 
-            cursor: pointer; 
-            border-radius: 4px; 
-            font-weight: bold; 
-            white-space: nowrap;
-        }
-        .update-btn:hover { background: #34495e; }
+        .update-btn { flex: 2; background: #2c3e50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; white-space: nowrap; }
+        .reset-btn { flex: 1; background: #95a5a6; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
 
-        .reset-btn { 
-            flex: 1; 
-            background: #95a5a6; 
-            color: white; 
-            border: none; 
-            padding: 10px; 
-            cursor: pointer; 
-            border-radius: 4px; 
-            font-weight: bold;
-        }
-
-        /* Data Grid Styling */
-        .data-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .card img {
-            width: 100%;
-            height: auto;
-            border: 1px solid #eee;
-            margin-bottom: 10px;
-            background-color: #fafafa;
-        }
-
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .card img { width: 100%; height: auto; border: 1px solid #eee; margin-bottom: 10px; background-color: #fafafa; }
         .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
         .card p { margin: 5px 0; font-size: 0.9em; }
         .card a { color: #3498db; text-decoration: none; font-weight: bold; }
-        .card a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
 <h1>Satellite Monitoring of CalCOFI region</h1>
-<p class="subtitle">The most recent satellite imagery. Optionally adjust coordinates to modify all maps.</p>
+<p class="subtitle">The most recent satellite imagery. Adjust coordinates to refresh all data products.</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
-        <div class="input-group">
-            <label>South Latitude</label>
-            <input type="number" id="latMin" value="29" step="0.1">
-        </div>
-        <div class="input-group">
-            <label>North Latitude</label>
-            <input type="number" id="latMax" value="39" step="0.1">
-        </div>
-        <div class="input-group">
-            <label>West Longitude</label>
-            <input type="number" id="lonMin" value="-127" step="0.1">
-        </div>
-        <div class="input-group">
-            <label>East Longitude</label>
-            <input type="number" id="lonMax" value="-116" step="0.1">
-        </div>
+        <div class="input-group"><label>South Lat</label><input type="number" id="latMin" value="29" step="0.1"></div>
+        <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39" step="0.1"></div>
+        <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127" step="0.1"></div>
+        <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116" step="0.1"></div>
         <div class="button-group">
             <button class="update-btn" onclick="updateAllMaps()">Update Maps</button>
             <button class="reset-btn" onclick="resetDefaults()">Reset</button>
@@ -119,15 +49,16 @@
 </div>
 
 <div class="data-grid">
-    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-daily-chla" alt="Daily Chl"><p><a id="lnk-daily-chla" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-weekly-chla" alt="Weekly Chl"><p><a id="lnk-weekly-chla" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SST</h3><img id="img-sst" alt="SST"><p><a id="lnk-sst" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom" alt="SST Anomaly"><p><a id="lnk-sst-anom" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine" alt="Sardine Habitat"><p><a id="lnk-sardine" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms" alt="C-HARMS"><p><a id="lnk-charms" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SSH</h3><img id="img-ssh" alt="SSH"><p><a id="lnk-ssh" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Wind Speed</h3><img id="img-wind" alt="Wind Speed"><p><a id="lnk-wind" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Salinity</h3><img id="img-sss" alt="Salinity"><p><a id="lnk-sss" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-daily-chla"><p><a id="lnk-daily-chla" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-weekly-chla"><p><a id="lnk-weekly-chla" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>SST</h3><img id="img-sst"><p><a id="lnk-sst" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom"><p><a id="lnk-sst-anom" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine"><p><a id="lnk-sardine" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms"><p><a id="lnk-charms" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>C-HARMS (Salinity)</h3><img id="img-charms-salt"><p><a id="lnk-charms-salt" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>SSH</h3><img id="img-ssh"><p><a id="lnk-ssh" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Wind Speed</h3><img id="img-wind"><p><a id="lnk-wind" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Salinity (SMOS)</h3><img id="img-sss"><p><a id="lnk-sss" target="_blank">Modify Map</a></p></div>
 </div>
 
 <script>
@@ -146,38 +77,42 @@ function updateAllMaps() {
     const eLonRaw = parseFloat(document.getElementById('lonMax').value);
 
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+    
+    // Standard Coordinate string (used for Daily/Weekly Chla, SST, SSH, Wind, SSS, and now Sardine)
     const coords = `[(${sLatRaw}):(${nLatRaw})][(${wLonRaw}):(${eLonRaw})]`;
 
-    // Helper to update both img and link
     function setContent(id, baseUrl, params) {
         document.getElementById('img-' + id).src = baseUrl + ".png" + params + "&.draw=img";
         document.getElementById('lnk-' + id).href = baseUrl + ".graph" + params;
     }
 
-    // --- PRODUCTS ---
+    // --- STANDARD PRODUCTS ---
     setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`);
-    
     setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`);
-    
     setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|&.bgColor=0xffccccff`);
-    
     setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|&.bgColor=0xffccccff`);
-    
     setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', `?ssh[(last)]${coords}&.vars=longitude|latitude|ssh&.colorBar=|||-.5|.5|&.bgColor=0xffccccff`);
-    
     setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', `?wind_speed[(last)][(10.0)]${coords}&.vars=longitude|latitude|wind_speed&.colorBar=|||||&.bgColor=0xffccccff`);
-    
-    // Salinity (requires .draw=surface instead of .draw=img)
+    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', `?potential_habitat_classification[(last)]${coords}&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`);
+
+    // SMOS Salinity (Needs .draw=surface)
     const sssParams = `?sss[(last)][(0.0)]${coords}&.vars=longitude|latitude|sss&.colorBar=|||||&.bgColor=0xffccccff`;
     document.getElementById('img-sss').src = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.png" + sssParams + "&.draw=surface";
     document.getElementById('lnk-sss').href = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.graph" + sssParams;
 
-    // --- CLAMPED PRODUCTS ---
-    const sarCoords = `[(${clamp(sLatRaw, 22, 51)}):(${clamp(nLatRaw, 22, 51)})][(${clamp(wLonRaw, -135, -105)}):(${clamp(eLonRaw, -135, -105)})]`;
-    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', `?potential_habitat_classification[(last)]${sarCoords}&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`);
+    // --- C-HARMS PRODUCTS (CLAMPED TO SPECIFIC MODEL BOUNDS) ---
+    // Constraints: 31.3 to 43 N, -127.5 to -117 W
+    const chSLat = clamp(sLatRaw, 31.3, 43);
+    const chNLat = clamp(nLatRaw, 31.3, 43);
+    const chWLon = clamp(wLonRaw, -127.5, -117);
+    const chELon = clamp(eLonRaw, -127.5, -117);
+    const charmsCoords = `[(${chSLat}):(${chNLat})][(${chWLon}):(${chELon})]`;
 
-    const chCoords = `[(${clamp(sLatRaw, 31.3, 43)}):(${clamp(nLatRaw, 31.3, 43)})][(${clamp(wLonRaw, -127.5, -117)}):(${clamp(eLonRaw, -127.5, -117)})]`;
-    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${chCoords}&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`);
+    // C-HARMS PN
+    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${charmsCoords}&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`);
+    
+    // C-HARMS Salinity
+    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?salinity[(last)]${charmsCoords}&.vars=longitude|latitude|salinity&.colorBar=|||31|35|&.bgColor=0xffccccff`);
 }
 
 window.onload = updateAllMaps;
