@@ -25,18 +25,14 @@
         .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
         
-        /* Container for image + overlay */
         .map-container { position: relative; width: 100%; display: inline-block; }
         .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; }
         
-        /* SVG Overlay Styling */
         .station-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* Allows clicking links behind it */
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
         }
 
         .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
@@ -47,7 +43,7 @@
 <body>
 
 <h1>Satellite Monitoring of CalCOFI region</h1>
-<p class="subtitle">The most recent satellite imagery. Station overlays are calibrated for the default 29-39N view.</p>
+<p class="subtitle">Dynamic satellite imagery with custom cruise station overlays.</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -92,24 +88,17 @@
 </div>
 
 <script>
-// Your Station List
 const stations = [
-    {lat: 32.95637, lon: -117.30538}, {lat: 32.94905, lon: -117.27357}, {lat: 33.2435, lon: -117.46542},
+    {lat: 32.95637, lon: -117.30538}, {lat: 32.94905, lon: -117.27357}, {lat: 33.24350, lon: -117.46542},
     {lat: 32.91304, lon: -117.39438}, {lat: 32.84637, lon: -117.53122}, {lat: 32.67971, lon: -117.87286},
     {lat: 32.51304, lon: -118.21386}, {lat: 32.34637, lon: -118.55423}, {lat: 32.17971, lon: -118.89396},
     {lat: 32.01304, lon: -119.23306}, {lat: 31.84637, lon: -119.57154}, {lat: 31.51304, lon: -120.24666},
-    {lat: 31.17971, lon: -120.91935}, {lat: 30.84637, lon: -121.58965}, {lat: 30.51304, lon: -122.2576},
-    {lat: 30.17971, lon: -122.92324}, {lat: 29.84637, lon: -123.58661}, {lat: 30.41795, lon: -123.99893},
-    {lat: 30.75128, lon: -123.33164}, {lat: 31.08462, lon: -122.66202}, {lat: 31.41795, lon: -121.99001},
-    {lat: 31.75128, lon: -121.31559}, {lat: 32.08462, lon: -120.63872}, {lat: 32.41795, lon: -119.95935},
-    {lat: 32.65128, lon: -119.48228}, {lat: 32.91795, lon: -118.93551}, {lat: 33.18462, lon: -118.38708},
-    {lat: 33.25128, lon: -118.24971}, {lat: 33.41795, lon: -117.90582}, {lat: 33.48462, lon: -117.76808},
-    {lat: 33.49462, lon: -117.74741}, {lat: 33.67442, lon: -118.08369}, {lat: 33.88887, lon: -118.44423},
+    {lat: 32.08462, lon: -120.63872}, {lat: 32.41795, lon: -119.95935}, {lat: 32.65128, lon: -119.48228},
+    {lat: 32.91795, lon: -118.93551}, {lat: 33.18462, lon: -118.38708}, {lat: 33.25128, lon: -118.24971},
+    {lat: 33.41795, lon: -117.90582}, {lat: 33.48462, lon: -117.76808}, {lat: 33.49462, lon: -117.74741},
     {lat: 33.88953, lon: -118.49033}, {lat: 33.82286, lon: -118.62873}, {lat: 34.02136, lon: -118.83413},
-    {lat: 33.65619, lon: -118.97425}, {lat: 33.48953, lon: -119.3191}, {lat: 33.32286, lon: -119.66327},
-    {lat: 33.15619, lon: -120.00678}, {lat: 32.98953, lon: -120.34964}, {lat: 32.65619, lon: -121.03339},
-    {lat: 32.32286, lon: -121.71457}, {lat: 31.98953, lon: -122.39323}, {lat: 31.65619, lon: -123.0694},
-    {lat: 31.32286, lon: -123.74313}
+    {lat: 33.65619, lon: -118.97425}, {lat: 33.48953, lon: -119.31910}, {lat: 33.32286, lon: -119.66327},
+    {lat: 33.15619, lon: -120.00678}, {lat: 32.98953, lon: -120.34964}, {lat: 32.65619, lon: -121.03339}
 ];
 
 function drawStations() {
@@ -121,21 +110,16 @@ function drawStations() {
     const svgs = [document.getElementById('ovl-daily'), document.getElementById('ovl-weekly')];
     
     svgs.forEach(svg => {
-        svg.innerHTML = ''; // Clear previous dots
+        svg.innerHTML = ''; 
         stations.forEach(st => {
-            // Map lat/lon to percentage coordinates within current box
             const x = ((st.lon - wLon) / (eLon - wLon)) * 100;
             const y = 100 - (((st.lat - sLat) / (nLat - sLat)) * 100);
             
-            // Only draw if within current view
             if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute("cx", x);
-                circle.setAttribute("cy", y);
-                circle.setAttribute("r", "1.5"); // Dot size
-                circle.setAttribute("fill", "black");
-                circle.setAttribute("stroke", "white");
-                circle.setAttribute("stroke-width", "0.2");
+                circle.setAttribute("cx", x); circle.setAttribute("cy", y);
+                circle.setAttribute("r", "1.2"); circle.setAttribute("fill", "black");
+                circle.setAttribute("stroke", "white"); circle.setAttribute("stroke-width", "0.3");
                 svg.appendChild(circle);
             }
         });
@@ -164,11 +148,8 @@ function updateAllMaps() {
         document.getElementById('lnk-' + id).href = baseUrl + ".graph" + params;
     }
 
-    // Standard Products
     setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`);
     setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|&.bgColor=0xffccccff`);
-    
-    // SST/Wind/SSH/Sardine/SSS remain as per your previous logic
     setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|&.bgColor=0xffccccff`);
     setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|&.bgColor=0xffccccff`);
     setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', `?ssh[(last)]${coords}&.vars=longitude|latitude|ssh&.colorBar=|||-.5|.5|&.bgColor=0xffccccff`);
@@ -179,12 +160,10 @@ function updateAllMaps() {
     document.getElementById('img-sss').src = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.png" + sssParams + "&.draw=surface";
     document.getElementById('lnk-sss').href = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day.graph" + sssParams;
 
-    // C-HARMS (Clamped)
-    const chCoords = `[(${clamp(sLatRaw, 31.3, 43)}):(${clamp(nLatRaw, 31.3, 43)})][(${clamp(wLonRaw, -127.5, -117)}):(${clamp(eLonRaw, -127.5, -117)})]`;
-    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${chCoords}&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`);
-    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?salinity[(last)]${chCoords}&.vars=longitude|latitude|salinity&.colorBar=|||31|35|&.bgColor=0xffccccff`);
+    const charmsCoords = `[(${clamp(sLatRaw, 31.3, 43)}):(${clamp(nLatRaw, 31.3, 43)})][(${clamp(wLonRaw, -127.5, -117)}):(${clamp(eLonRaw, -127.5, -117)})]`;
+    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${charmsCoords}&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`);
+    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?salinity[(last)]${charmsCoords}&.vars=longitude|latitude|salinity&.colorBar=|||31|35|&.bgColor=0xffccccff`);
 
-    // DRAW THE STATIONS
     drawStations();
 }
 
