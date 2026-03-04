@@ -43,7 +43,7 @@
 <body>
 
 <h1>Satellite Monitoring of CalCOFI region</h1>
-<p class="subtitle">Dynamic satellite imagery with custom cruise station overlays.</p>
+<p class="subtitle">Dynamic satellite imagery with custom cruise station overlays. Stations are now marked in Yellow.</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -107,11 +107,11 @@ function drawStations() {
     const wLon = parseFloat(document.getElementById('lonMin').value);
     const eLon = parseFloat(document.getElementById('lonMax').value);
 
-    // ERDDAP PNG CALIBRATION (Adjust these percentages)
-    const topMargin = 10;    // Header area
-    const bottomMargin = 75; // Top of colorbar/legend
-    const leftMargin = 9;   // Latitude label area
-    const rightMargin = 97; // Narrow right border
+    // --- UPDATED CALIBRATION ---
+    const topMargin = 5;     
+    const bottomMargin = 64; // Significant Northward shift
+    const leftMargin = 11;   // Westward shift
+    const rightMargin = 96; 
 
     const svgs = [document.getElementById('ovl-daily'), document.getElementById('ovl-weekly')];
     
@@ -121,15 +121,16 @@ function drawStations() {
             const rawX = (st.lon - wLon) / (eLon - wLon);
             const rawY = (st.lat - sLat) / (nLat - sLat);
             
-            // Scaled positioning
             const x = leftMargin + (rawX * (rightMargin - leftMargin));
             const y = bottomMargin - (rawY * (bottomMargin - topMargin));
             
             if (rawX >= 0 && rawX <= 1 && rawY >= 0 && rawY <= 1) {
                 const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
                 circle.setAttribute("cx", x); circle.setAttribute("cy", y);
-                circle.setAttribute("r", "1.1"); circle.setAttribute("fill", "#ff3300");
-                circle.setAttribute("stroke", "white"); circle.setAttribute("stroke-width", "0.3");
+                circle.setAttribute("r", "1.2"); 
+                circle.setAttribute("fill", "#ffff00"); // BRIGHT YELLOW
+                circle.setAttribute("stroke", "#000000"); // BLACK OUTLINE
+                circle.setAttribute("stroke-width", "0.4");
                 svg.appendChild(circle);
             }
         });
