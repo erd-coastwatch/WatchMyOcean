@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CalCOFI Watch - Targeted Cruise Overlay</title>
+    <title>CalCOFI Watch - Fixed Overlays</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -28,7 +28,7 @@
 <body>
 
 <h1>CalCOFI Satellite Monitoring</h1>
-<p class="subtitle">Cruise: <b>202304</b> | Lines: <b>>84</b> | Stations: <b><=70</b></p>
+<p class="subtitle">Cruise: 202304 | Line > 84 | Station <= 70</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -62,46 +62,47 @@ function updateAllMaps() {
 
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-    // Server-side filtering logic for erdCalCOFIstns
-    // Marker type is set to circle with a black outline and yellow fill
+    // Refined Table Overlay Logic
     function getStationLogic(minL, maxL, minO, maxO) {
-        const filter = `&.tDatasetID=erdCalCOFIstns&.tXVar=longitude&.tYVar=latitude&.tFilter=(cruise="202304",station<=70,line>84,longitude>=${minO},longitude<=${maxO},latitude>=${minL},latitude<=${maxL})`;
-        const draw = `&.latMin=${minL}&.latMax=${maxL}&.lonMin=${minO}&.lonMax=${maxO}&.markerType=circle&.markerSize=4&.markerColor=0xFFFF00&.markerOutlineColor=0x000000`;
-        return filter + draw;
+        // Updated filter to ensure line and station constraints are strict
+        const tFilter = `&.tDatasetID=erdCalCOFIstns&.tXVar=longitude&.tYVar=latitude&.tFilter=(cruise=%22202304%22,station<=70,line>84,longitude>=${minO},longitude<=${maxO},latitude>=${minL},latitude<=${maxL})`;
+        const tDraw = `&.markerType=square&.markerSize=6&.markerColor=0xFFFF00&.markerOutlineColor=0x000000`;
+        return tFilter + tDraw;
     }
 
-    function setContent(id, baseUrl, gridParams, isCharms = false) {
-        let finalGridParams = gridParams;
-        let finalLatMin = sLat, finalLatMax = nLat, finalLonMin = wLon, finalLonMax = eLon;
+    function setContent(id, baseUrl, gridVar, colorBar, isCharms = false) {
+        let finalSLat = sLat, finalNLat = nLat, finalWLon = wLon, finalELon = eLon;
 
         if (isCharms) {
-            finalLatMin = clamp(sLat, 31.3, 43);
-            finalLatMax = clamp(nLat, 31.3, 43);
-            finalLonMin = clamp(wLon, -127.5, -117);
-            finalLonMax = clamp(eLon, -127.5, -117);
-            finalGridParams = gridParams.replace(/\[\(.*?\):\(.*?\)\]\[\(.*?\):\(.*?\)\]/, `[(${finalLatMin}):(${finalLatMax})][(${finalLonMin}):(${finalLonMax})]`);
+            // Apply fixed C-HARMS clamp settings
+            finalSLat = clamp(sLat, 31.3, 43);
+            finalNLat = clamp(nLat, 31.3, 43);
+            finalWLon = clamp(wLon, -127.5, -117);
+            finalELon = clamp(eLon, -127.5, -117);
         }
 
-        const fullParams = `${finalGridParams}${getStationLogic(finalLatMin, finalLatMax, finalLonMin, finalLonMax)}&.draw=mixed`;
+        const gridCoords = `[(${finalSLat}):(${finalNLat})][(${finalWLon}):(${finalELon})]`;
+        const gridPart = `?${gridVar}[(last)]${id.includes('chla') || id === 'sss' ? '[(0.0)]' : ''}${gridCoords}&.vars=longitude|latitude|${gridVar}&.colorBar=${colorBar}`;
+        
+        // Use .draw=mixed to combine grid + table
+        const fullParams = `${gridPart}${getStationLogic(finalSLat, finalNLat, finalWLon, finalELon)}&.draw=mixed&.latMin=${finalSLat}&.latMax=${finalNLat}&.lonMin=${finalWLon}&.lonMax=${finalELon}`;
         
         document.getElementById('img-' + id).src = baseUrl + ".png" + fullParams;
         document.getElementById('lnk-' + id).href = baseUrl + ".graph" + fullParams;
     }
 
-    const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
-
-    setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
-    setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
-    setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|`);
-    setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|`);
-    setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', `?ssh[(last)]${coords}&.vars=longitude|latitude|ssh`);
-    setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', `?wind_speed[(last)][(10.0)]${coords}&.vars=longitude|latitude|wind_speed`);
-    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', `?potential_habitat_classification[(last)]${coords}`);
-    setContent('sss', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day', `?sss[(last)][(0.0)]${coords}`);
+    setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', 'chlor_a', 'Rainbow2|||.03|5|');
+    setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', 'chlor_a', 'Rainbow2|||.03|5|');
+    setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', 'CRW_SST', '|||10|22|');
+    setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', 'CRW_SSTANOMALY', 'BlueWhiteRed|||-2|2|');
+    setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', 'ssh', '|||-.5|.5|');
+    setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', 'wind_speed', '');
+    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', 'potential_habitat_classification', '');
+    setContent('sss', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day', 'sss', '');
     
-    // C-HARMS (Clamped)
-    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${coords}`, true);
-    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?salinity[(last)]${coords}&.colorBar=|||31|35|`, true);
+    // C-HARMS (Now correctly clamped)
+    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'pseudo_nitzschia', '', true);
+    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'salinity', '|||31|35|', true);
 }
 
 window.onload = updateAllMaps;
