@@ -1,41 +1,113 @@
-from erddapy import ERDDAP
-import matplotlib.pyplot as plt
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import pandas as pd
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CalCOFI Watch - Final Proxy Solution</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        #erddap-widget { background: white; padding: 15px; border-radius: 8px; border: 1px solid #2c3e50; max-width: 1200px; margin: 0 auto 20px auto; }
+        .widget-flex { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+        .input-group { flex: 1; }
+        .input-group label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 5px; }
+        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .update-btn { background: #2c3e50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .map-container { position: relative; width: 100%; display: inline-block; overflow: hidden; }
+        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; }
+        /* Precision calibrated overlay for ERDDAP default PNGs */
+        .station-overlay { position: absolute; top: 5.5%; left: 7.4%; width: 89.2%; height: 77.2%; pointer-events: none; }
+        #status { max-width: 1200px; margin: 10px auto; padding: 10px; background: #eee; border-radius: 4px; font-size: 0.85em; color: #666; }
+    </style>
+</head>
+<body>
 
-# 1. Setup ERDDAP connection
-e = ERDDAP(server="https://coastwatch.pfeg.noaa.gov/erddap", protocol="tabledap")
+<h1>CalCOFI Satellite Monitoring</h1>
+<div id="erddap-widget">
+    <div class="widget-flex">
+        <div class="input-group"><label>South Lat</label><input type="number" id="latMin" value="29" step="0.1"></div>
+        <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39" step="0.1"></div>
+        <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127" step="0.1"></div>
+        <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116" step="0.1"></div>
+        <button class="update-btn" onclick="updateAllMaps()">Update All Maps</button>
+    </div>
+</div>
 
-# 2. Fetch Station Data
-e.dataset_id = "erdCalCOFIstns"
-e.constraints = {
-    "cruise=": "202304",
-    "line>": 84,
-    "station<=": 70,
+<div id="status">Ready. Click Update to fetch data...</div>
+
+<div class="data-grid">
+    <div class="card"><h3>Daily Chlorophyll</h3><div class="map-container"><img id="img-chla"><svg id="ovl-chla" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>SST</h3><div class="map-container"><img id="img-sst"><svg id="ovl-sst" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>Wind</h3><div class="map-container"><img id="img-wind"><svg id="ovl-wind" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>C-HARMS</h3><div class="map-container"><img id="img-charms"><svg id="ovl-charms" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+</div>
+
+<script>
+async function updateAllMaps() {
+    const sLat = parseFloat(document.getElementById('latMin').value);
+    const nLat = parseFloat(document.getElementById('latMax').value);
+    const wLon = parseFloat(document.getElementById('lonMin').value);
+    const eLon = parseFloat(document.getElementById('lonMax').value);
+    const status = document.getElementById('status');
+
+    status.innerText = "Step 1: Updating Satellite Images...";
+    const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
+    document.getElementById('img-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`;
+    document.getElementById('img-sst').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST`;
+    document.getElementById('img-wind').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day.png?wind_speed[(last)][(10.0)]${coords}`;
+
+    const cSLat = Math.max(31.3, sLat), cNLat = Math.min(43, nLat);
+    const cWLon = Math.max(-127.5, wLon), cELon = Math.min(-117, eLon);
+    document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)][(${cSLat}):(${cNLat})][(${cWLon}):(${cELon})]`;
+
+    status.innerText = "Step 2: Fetching Station Data (Via CORS Proxy)...";
+    // Using a public CORS proxy to bypass security blocks
+    const erddapUrl = `https://coastwatch.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIstns.csv?longitude,latitude&cruise=%22202304%22&line>84&station<=70`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(erddapUrl)}`;
+
+    try {
+        const response = await fetch(proxyUrl);
+        const json = await response.json();
+        const csvData = json.contents;
+        const lines = csvData.split('\n').slice(2); // Skip header rows
+        
+        let stations = [];
+        lines.forEach(line => {
+            const parts = line.split(',');
+            if (parts.length >= 2) {
+                stations.push({ lon: parseFloat(parts[0]), lat: parseFloat(parts[1]) });
+            }
+        });
+
+        status.innerText = `Step 3: Drawing ${stations.length} Stations...`;
+        
+        ['chla', 'sst', 'wind', 'charms'].forEach(id => {
+            const svg = document.getElementById('ovl-' + id);
+            svg.innerHTML = '';
+            let lMin = sLat, lMax = nLat, wMin = wLon, wMax = eLon;
+            if (id === 'charms') { lMin = cSLat; lMax = cNLat; wMin = cWLon; wMax = cELon; }
+
+            stations.forEach(st => {
+                const x = ((st.lon - wMin) / (wMax - wMin)) * 100;
+                const y = 100 - (((st.lat - lMin) / (lMax - lMin)) * 100);
+                if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+                    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    rect.setAttribute("x", x-1); rect.setAttribute("y", y-1);
+                    rect.setAttribute("width", "2"); rect.setAttribute("height", "2");
+                    rect.setAttribute("fill", "yellow"); rect.setAttribute("stroke", "black");
+                    rect.setAttribute("stroke-width", "0.5");
+                    svg.appendChild(rect);
+                }
+            });
+        });
+        status.innerText = "Success: Maps and Stations Updated.";
+    } catch (err) {
+        status.innerText = "Error: Proxy failed to fetch station data.";
+        console.error(err);
+    }
 }
-e.variables = ["longitude", "latitude", "station", "line"]
-df_stns = e.to_pandas().dropna()
-
-# 3. Fetch Satellite Data (Example: Daily Chl-a)
-# We'll use a simple URL request for the grid to keep it lightweight
-grid_url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.nc?chlor_a[(last)][(0.0)][(29):(39)][(-127):(-116)]"
-# (In a full script, you'd use xarray to open this .nc file)
-
-# 4. Plotting
-fig = plt.figure(figsize=(10, 8))
-ax = plt.axes(projection=ccrs.PlateCarree())
-ax.set_extent([-127, -116, 29, 39])
-
-# Add map features
-ax.add_feature(cfeature.COASTLINE)
-ax.add_feature(cfeature.LAND, facecolor='lightgray')
-
-# Plot Stations
-plt.scatter(df_stns['longitude (degrees_east)'], 
-            df_stns['latitude (degrees_north)'], 
-            color='yellow', edgecolors='black', s=50, transform=ccrs.PlateCarree(), label='CalCOFI Stations')
-
-plt.title("CalCOFI Cruise 202304 - Station Map")
-plt.legend()
-plt.show()
+window.onload = updateAllMaps;
+</script>
+</body>
+</html>
