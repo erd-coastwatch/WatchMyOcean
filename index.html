@@ -177,8 +177,8 @@ function updateAllMaps() {
     const sarCoords = `[(${clamp(sLatRaw, 22, 51)}):(${clamp(nLatRaw, 22, 51)})][(${clamp(wLonRaw, -135, -105)}):(${clamp(eLonRaw, -135, -105)})]`;
     document.getElementById('img-sardine').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2.png?potential_habitat_classification[(last)]${sarCoords}&.draw=img&.vars=longitude|latitude|potential_habitat_classification&.colorBar=|||||&.bgColor=0xffccccff`;
 
-    // C-HARMS (30N-44.5N, -128W to -116W)
-    const chCoords = `[(${clamp(sLatRaw, 30, 44.5)}):(${clamp(nLatRaw, 30, 44.5)})][(${clamp(wLonRaw, -128, -116)}):(${clamp(eLonRaw, -128, -116)})]`;
+    // C-HARMS (31.3N-43N, -127.5W to -117W)
+    const chCoords = `[(${clamp(sLatRaw, 31.3, 43)}):(${clamp(nLatRaw, 31.3, 43)})][(${clamp(wLonRaw, -127.5, -117)}):(${clamp(eLonRaw, -127.5, -117)})]`;
     document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)]${chCoords}&.draw=img&.vars=longitude|latitude|pseudo_nitzschia&.colorBar=|||||&.bgColor=0xffccccff`;
 }
 
