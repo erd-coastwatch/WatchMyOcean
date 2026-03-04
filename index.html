@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CalCOFI Watch - Final Integration</title>
+    <title>CalCOFI Watch - Data Driven</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
@@ -20,7 +20,20 @@
 
         .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; min-height: 300px; }
+        
+        .map-container { position: relative; width: 100%; display: inline-block; overflow: hidden; }
+        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; }
+        
+        /* The Overlay Layer */
+        .station-overlay { 
+            position: absolute; 
+            top: 5.5%; /* Calibrated for ERDDAP header */
+            left: 7.5%; /* Calibrated for Lat labels */
+            width: 88.5%; 
+            height: 76.5%; /* Cuts off before the legend */
+            pointer-events: none; 
+        }
+
         .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
         .card a { color: #3498db; text-decoration: none; font-weight: bold; font-size: 0.85em; }
     </style>
@@ -28,7 +41,7 @@
 <body>
 
 <h1>CalCOFI Satellite Monitoring</h1>
-<p class="subtitle">Survey: 202304 | Lines > 84 | Stations <= 70</p>
+<p class="subtitle">Live Stations from <b>erdCalCOFIstns</b> (Cruise 202304)</p>
 
 <div id="erddap-widget">
     <div class="widget-flex">
@@ -41,63 +54,76 @@
 </div>
 
 <div class="data-grid">
-    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-daily-chla"><p><a id="lnk-daily-chla" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-weekly-chla"><p><a id="lnk-weekly-chla" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SST</h3><img id="img-sst"><p><a id="lnk-sst" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom"><p><a id="lnk-sst-anom" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine"><p><a id="lnk-sardine" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms"><p><a id="lnk-charms" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>C-HARMS (Salinity)</h3><img id="img-charms-salt"><p><a id="lnk-charms-salt" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>SSH</h3><img id="img-ssh"><p><a id="lnk-ssh" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Wind Speed</h3><img id="img-wind"><p><a id="lnk-wind" target="_blank">Modify Map</a></p></div>
-    <div class="card"><h3>Salinity (SMOS)</h3><img id="img-sss"><p><a id="lnk-sss" target="_blank">Modify Map</a></p></div>
+    <div class="card"><h3>Daily Chlorophyll</h3><div class="map-container"><img id="img-daily-chla"><svg id="ovl-daily-chla" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>Weekly Chlorophyll</h3><div class="map-container"><img id="img-weekly-chla"><svg id="ovl-weekly-chla" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>SST</h3><div class="map-container"><img id="img-sst"><svg id="ovl-sst" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>SST Anomaly</h3><div class="map-container"><img id="img-sst-anom"><svg id="ovl-sst-anom" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>C-HARMS (PN)</h3><div class="map-container"><img id="img-charms"><svg id="ovl-charms" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
+    <div class="card"><h3>Wind Speed</h3><div class="map-container"><img id="img-wind"><svg id="ovl-wind" class="station-overlay" viewBox="0 0 100 100" preserveAspectRatio="none"></svg></div></div>
 </div>
 
 <script>
-function updateAllMaps() {
+async function fetchStations(sLat, nLat, wLon, eLon) {
+    const url = `https://coastwatch.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIstns.json?longitude,latitude&cruise=%22202304%22&line>84&station<=70&longitude>=${wLon}&longitude<=${eLon}&latitude>=${sLat}&latitude<=${nLat}`;
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data.table.rows.map(r => ({ lon: r[0], lat: r[1] }));
+    } catch (e) {
+        console.error("Failed to fetch stations", e);
+        return [];
+    }
+}
+
+async function updateAllMaps() {
     const sLat = parseFloat(document.getElementById('latMin').value);
     const nLat = parseFloat(document.getElementById('latMax').value);
     const wLon = parseFloat(document.getElementById('lonMin').value);
     const eLon = parseFloat(document.getElementById('lonMax').value);
 
+    // Fetch the real coordinates
+    const liveStations = await fetchStations(sLat, nLat, wLon, eLon);
+
+    function drawOnSVG(svgId, currentSLat, currentNLat, currentWLon, currentELon) {
+        const svg = document.getElementById(svgId);
+        svg.innerHTML = '';
+        liveStations.forEach(st => {
+            const x = ((st.lon - currentWLon) / (currentELon - currentWLon)) * 100;
+            const y = 100 - (((st.lat - currentSLat) / (currentNLat - currentSLat)) * 100);
+            
+            if (x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", x); circle.setAttribute("cy", y);
+                circle.setAttribute("r", "1.5"); circle.setAttribute("fill", "yellow");
+                circle.setAttribute("stroke", "black"); circle.setAttribute("stroke-width", "0.5");
+                svg.appendChild(circle);
+            }
+        });
+    }
+
+    const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
     const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
-    // Refined Mixed Mode Parameters: Order Matters
-    function getMixerParams(minL, maxL, minO, maxO) {
-        return `&.tDatasetID=erdCalCOFIstns` +
-               `&.tXVar=longitude&.tYVar=latitude` + 
-               `&.tFilter=(cruise=%22202304%22,line>84,station<=70)` + 
-               `&.markerType=plus&.markerSize=10&.markerColor=0xFF0000` + // Red Plus for high visibility
-               `&.latMin=${minL}&.latMax=${maxL}&.lonMin=${minO}&.lonMax=${maxO}&.draw=mixed`;
-    }
+    // Update Images
+    document.getElementById('img-daily-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily.png?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`;
+    document.getElementById('img-weekly-chla').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly.png?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`;
+    document.getElementById('img-sst').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST`;
+    document.getElementById('img-sst-anom').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.png?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|`;
+    document.getElementById('img-wind').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day.png?wind_speed[(last)][(10.0)]${coords}&.vars=longitude|latitude|wind_speed`;
 
-    function setContent(id, baseUrl, gridVar, extraDims, colorBar, isCharms = false) {
-        let fSLat = sLat, fNLat = nLat, fWLon = wLon, fELon = eLon;
+    // C-HARMS (Clamped)
+    const cSLat = clamp(sLat, 31.3, 43), cNLat = clamp(nLat, 31.3, 43);
+    const cWLon = clamp(wLon, -127.5, -117), cELon = clamp(eLon, -127.5, -117);
+    const cCoords = `[(${cSLat}):(${cNLat})][(${cWLon}):(${cELon})]`;
+    document.getElementById('img-charms').src = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180.png?pseudo_nitzschia[(last)]${cCoords}`;
 
-        if (isCharms) {
-            fSLat = clamp(sLat, 31.3, 43);
-            fNLat = clamp(nLat, 31.3, 43);
-            fWLon = clamp(wLon, -127.5, -117);
-            fELon = clamp(eLon, -127.5, -117);
-        }
-
-        const gridPart = `?${gridVar}[(last)]${extraDims}[(${fSLat}):(${fNLat})][(${fWLon}):(${fELon})]&.vars=longitude|latitude|${gridVar}&.colorBar=${colorBar}`;
-        const finalUrl = baseUrl + ".png" + gridPart + getMixerParams(fSLat, fNLat, fWLon, fELon);
-        
-        document.getElementById('img-' + id).src = finalUrl;
-        document.getElementById('lnk-' + id).href = baseUrl + ".graph" + gridPart + getMixerParams(fSLat, fNLat, fWLon, fELon);
-    }
-
-    setContent('daily-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', 'chlor_a', '[(0.0)]', 'Rainbow2|||.03|5|');
-    setContent('weekly-chla', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', 'chlor_a', '[(0.0)]', 'Rainbow2|||.03|5|');
-    setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', 'CRW_SST', '', '|||10|22|');
-    setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', 'CRW_SSTANOMALY', '', 'BlueWhiteRed|||-2|2|');
-    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', 'potential_habitat_classification', '', '');
-    setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', 'ssh', '', '|||-.5|.5|');
-    setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', 'wind_speed', '[(10.0)]', '|||0|15|');
-    setContent('sss', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day', 'sss', '[(0.0)]', '|||31|35|');
-    setContent('charms', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'pseudo_nitzschia', '', '', true);
-    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', 'salinity', '', '|||31|35|', true);
+    // Draw Overlays
+    drawOnSVG('ovl-daily-chla', sLat, nLat, wLon, eLon);
+    drawOnSVG('ovl-weekly-chla', sLat, nLat, wLon, eLon);
+    drawOnSVG('ovl-sst', sLat, nLat, wLon, eLon);
+    drawOnSVG('ovl-sst-anom', sLat, nLat, wLon, eLon);
+    drawOnSVG('ovl-wind', sLat, nLat, wLon, eLon);
+    drawOnSVG('ovl-charms', cSLat, cNLat, cWLon, cELon);
 }
 
 window.onload = updateAllMaps;
