@@ -1,100 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>CalCOFI Satellite Dashboard</title>
-    <style>
-        body { font-family: sans-serif; background-color: #f0f4f8; padding: 20px; margin: 0; }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-        #erddap-widget { 
-            background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #2c3e50; 
-            max-width: 1200px; margin: 0 auto 30px auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-        }
-        .widget-flex { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: nowrap; }
-        .input-group { flex: 1; }
-        .input-group label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 5px; color: #34495e; }
-        .input-group input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        
-        .button-group { display: flex; gap: 8px; flex: 0.5; }
-        .update-btn { flex: 2; background: #2c3e50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        .reset-btn { flex: 1; background: #95a5a6; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+  <meta charset="UTF-8" />
+  <title>CalCOFI Satellite Dashboard</title>
+  <style>
+    body { font-family: sans-serif; background: #f0f4f8; margin: 0; padding: 20px; }
+    h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+    
+    #erddap-widget {
+      background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #2c3e50;
+      max-width: 1200px; margin: 0 auto 20px auto; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .widget-flex { display: flex; gap: 10px; align-items: flex-end; }
+    .input-group { flex: 1; }
+    .input-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #34495e; }
+    .input-group input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+    
+    .button-group { display: flex; flex-direction: column; gap: 5px; min-width: 220px; }
+    .btn-row { display: flex; gap: 6px; }
+    
+    .update-btn, .reset-btn { border: none; padding: 10px 14px; color: white; cursor: pointer; border-radius: 4px; font-weight: bold; flex: 1; }
+    .update-btn { background: #2c3e50; }
+    .reset-btn { background: #95a5a6; }
+    
+    /* Request 2: Warning text in the widget */
+    #station-note { 
+      font-size: 12px; 
+      color: #d35400; 
+      font-weight: bold; 
+      display: none; /* Controlled by JS */
+      margin-top: 5px;
+      text-align: center;
+    }
 
-        .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .card img { width: 100%; height: auto; border: 1px solid #eee; background-color: #fafafa; display: block; margin-bottom: 10px; min-height: 200px; }
-        .card h3 { margin: 10px 0 5px; font-size: 1.1em; color: #34495e; }
-        .card a { color: #3498db; text-decoration: none; font-weight: bold; font-size: 0.9em; }
-    </style>
+    .data-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); text-align: center; }
+    .map-wrap { position: relative; width: 100%; }
+    .map-wrap img { width: 100%; height: auto; display: block; border: 1px solid #eee; background: #fafafa; min-height: 200px; }
+    .station-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .card h3 { margin: 10px 0; color: #34495e; font-size: 1.1em; }
+    .card a { color: #3498db; text-decoration: none; font-weight: bold; font-size: 0.9em; }
+  </style>
 </head>
 <body>
 
 <h1>CalCOFI Satellite Monitoring</h1>
 
 <div id="erddap-widget">
-    <div class="widget-flex">
-        <div class="input-group"><label>South Lat</label><input type="number" id="latMin" value="29" step="0.1"></div>
-        <div class="input-group"><label>North Lat</label><input type="number" id="latMax" value="39" step="0.1"></div>
-        <div class="input-group"><label>West Lon</label><input type="number" id="lonMin" value="-127" step="0.1"></div>
-        <div class="input-group"><label>East Lon</label><input type="number" id="lonMax" value="-116" step="0.1"></div>
-        <div class="button-group">
-            <button class="update-btn" onclick="updateAllMaps()">Update</button>
-            <button class="reset-btn" onclick="resetDefaults()">Reset</button>
-        </div>
+  <div class="widget-flex">
+    <div class="input-group"><label>South Lat</label><input id="latMin" type="number" value="29" step="0.1" /></div>
+    <div class="input-group"><label>North Lat</label><input id="latMax" type="number" value="39" step="0.1" /></div>
+    <div class="input-group"><label>West Lon</label><input id="lonMin" type="number" value="-127" step="0.1" /></div>
+    <div class="input-group"><label>East Lon</label><input id="lonMax" type="number" value="-116" step="0.1" /></div>
+    
+    <div class="button-group">
+      <div class="btn-row">
+        <button class="update-btn" onclick="updateAllMaps()">Update</button>
+        <button class="reset-btn" onclick="resetDefaults()">Reset</button>
+      </div>
+      <div id="station-note">Note: Stations are only drawn on default map boundaries.</div>
     </div>
+  </div>
 </div>
 
 <div class="data-grid" id="grid">
-    <div class="card"><h3>Daily Chlorophyll</h3><img id="img-chla-d"><a id="lnk-chla-d" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>Weekly Chlorophyll</h3><img id="img-chla-w"><a id="lnk-chla-w" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>SST</h3><img id="img-sst"><a id="lnk-sst" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>SST Anomaly</h3><img id="img-sst-anom"><a id="lnk-sst-anom" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>Sardine Habitat</h3><img id="img-sardine"><a id="lnk-sardine" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>C-HARMS (PN)</h3><img id="img-charms-pn"><a id="lnk-charms-pn" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>C-HARMS (Salinity)</h3><img id="img-charms-salt"><a id="lnk-charms-salt" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>Wind Speed</h3><img id="img-wind"><a id="lnk-wind" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>SSH</h3><img id="img-ssh"><a id="lnk-ssh" target="_blank">View on ERDDAP</a></div>
-    <div class="card"><h3>Salinity (SMOS)</h3><img id="img-sss"><a id="lnk-sss" target="_blank">View on ERDDAP</a></div>
+  <div class="card"><h3>Daily Chlorophyll</h3><div class="map-wrap"><img id="img-chla-d"><canvas id="cvs-chla-d" class="station-canvas"></canvas></div><a id="lnk-chla-d" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>Weekly Chlorophyll</h3><div class="map-wrap"><img id="img-chla-w"><canvas id="cvs-chla-w" class="station-canvas"></canvas></div><a id="lnk-chla-w" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>SST</h3><div class="map-wrap"><img id="img-sst"><canvas id="cvs-sst" class="station-canvas"></canvas></div><a id="lnk-sst" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>SST Anomaly</h3><div class="map-wrap"><img id="img-sst-anom"><canvas id="cvs-sst-anom" class="station-canvas"></canvas></div><a id="lnk-sst-anom" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>Sardine Habitat</h3><div class="map-wrap"><img id="img-sardine"><canvas id="cvs-sardine" class="station-canvas"></canvas></div><a id="lnk-sardine" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>C-HARMS (PN)</h3><div class="map-wrap"><img id="img-charms-pn"><canvas id="cvs-charms-pn" class="station-canvas"></canvas></div><a id="lnk-charms-pn" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>Salinity (WCOFS)</h3><div class="map-wrap"><img id="img-charms-salt"><canvas id="cvs-charms-salt" class="station-canvas"></canvas></div><a id="lnk-charms-salt" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>Wind Speed</h3><div class="map-wrap"><img id="img-wind"><canvas id="cvs-wind" class="station-canvas"></canvas></div><a id="lnk-wind" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>SSH</h3><div class="map-wrap"><img id="img-ssh"><canvas id="cvs-ssh" class="station-canvas"></canvas></div><a id="lnk-ssh" target="_blank">ERDDAP</a></div>
+  <div class="card"><h3>Salinity (SMOS)</h3><div class="map-wrap"><img id="img-sss"><canvas id="cvs-sss" class="station-canvas"></canvas></div><a id="lnk-sss" target="_blank">ERDDAP</a></div>
 </div>
 
 <script>
-function resetDefaults() {
-    document.getElementById('latMin').value = 29;
-    document.getElementById('latMax').value = 39;
-    document.getElementById('lonMin').value = -127;
-    document.getElementById('lonMax').value = -116;
+  // Your original working station list
+  const STATIONS = [
+    { lon: -117.295, lat: 32.958332 }, { lon: -117.29, lat: 32.93833 }, { lon: -117.486664, lat: 33.233334 },
+    { lon: -117.388336, lat: 32.916664 }, { lon: -117.525, lat: 32.843334 }, { lon: -117.87, lat: 32.68 },
+    { lon: -118.21333, lat: 32.515 }, { lon: -118.555, lat: 32.345 }, { lon: -118.88333, lat: 32.178333 },
+    { lon: -119.23167, lat: 32.00833 }, { lon: -119.57166, lat: 31.846666 }, { lon: -120.245, lat: 31.511665 },
+    { lon: -120.63167, lat: 32.081665 }, { lon: -119.956665, lat: 32.413334 }, { lon: -119.48, lat: 32.651665 },
+    { lon: -118.935, lat: 32.91833 }, { lon: -118.386665, lat: 33.183334 }, { lon: -118.25, lat: 33.251667 },
+    { lon: -117.75166, lat: 33.49 }, { lon: -117.77, lat: 33.483334 }, { lon: -117.905, lat: 33.41833 },
+    { lon: -118.096664, lat: 33.625 }, { lon: -118.456665, lat: 33.885 }, { lon: -118.49167, lat: 33.891666 },
+    { lon: -118.628334, lat: 33.82 }, { lon: -118.971664, lat: 33.658333 }, { lon: -119.31834, lat: 33.485 },
+    { lon: -119.66333, lat: 33.32 }, { lon: -120.00667, lat: 33.156666 }, { lon: -120.348335, lat: 32.99 },
+    { lon: -121.03167, lat: 32.656666 }
+  ];
+
+  function resetDefaults() {
+    document.getElementById("latMin").value = 29;
+    document.getElementById("latMax").value = 39;
+    document.getElementById("lonMin").value = -127;
+    document.getElementById("lonMax").value = -116;
     updateAllMaps();
-}
+  }
 
-function updateAllMaps() {
-    const sLat = document.getElementById('latMin').value;
-    const nLat = document.getElementById('latMax').value;
-    const wLon = document.getElementById('lonMin').value;
-    const eLon = document.getElementById('lonMax').value;
+  // YOUR WORKING PLOT BOX DATA
+  function getPlotBox(canvas, id) {
+    const W = canvas.width, H = canvas.height;
+    let L = 0.15, R = 0.05, T = 0.13, B = 0.38;
+    if (id === "chla-d" || id === "chla-w" || id === "sst" || id === "sst-anom" || id === "sardine") { L = -0.02; B = 0.38; }
+    else if (id === "charms-pn") { L = -0.08; B = 0.44; }
+    else if (id === "charms-salt") { L = 0.0; B = 0.44; }
+    else if (id === "wind") { L = -0.02; B = 0.41; }
+    else if (id === "ssh") { L = -0.02; B = 0.39; }
+    else if (id === "sss") { L = -0.10; B = 0.37; }
+    return { left: Math.round(W * L), top: Math.round(H * T), width: Math.max(10, Math.round(W * (1 - L - R))), height: Math.max(10, Math.round(H * (1 - T - B))) };
+  }
 
-    const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+  // YOUR WORKING GEO BOUNDS DATA
+  function getGeoBounds(id, sLat, nLat, wLon, eLon) {
+    if (id === "chla-d" || id === "chla-w") return { sLat: 29.00625, nLat: 38.98125, wLon: -126.99375, eLon: -116.00625 };
+    if (id === "sst" || id === "sst-anom") return { sLat: 29.025, nLat: 39.025, wLon: -126.975, eLon: -115.975 };
+    if (id === "sardine") return { sLat: 29.02083, nLat: 39.02083, wLon: -126.9792, eLon: -115.9792 };
+    if (id === "charms-pn" || id === "charms-salt") return { sLat: 31.3, nLat: 39.01, wLon: -126.990005, eLon: -117.0 };
+    if (id === "wind") return { sLat: 28.833394, nLat: 38.833384, wLon: -126.833386, eLon: -115.833397 };
+    if (id === "ssh") return { sLat: 29.125, nLat: 39.125, wLon: -126.875, eLon: -115.875 };
+    if (id === "sss") return { sLat: 29.125, nLat: 38.875, wLon: -126.875, eLon: -116.125 };
+    return { sLat, nLat, wLon, eLon };
+  }
+
+  function drawStations(canvasId, imgId, sLat, nLat, wLon, eLon) {
+    const canvas = document.getElementById(canvasId), img = document.getElementById(imgId);
+    if (!canvas || !img || img.clientWidth === 0) return;
+    canvas.width = img.clientWidth; canvas.height = img.clientHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Request 1: Only draw if on default boundaries
+    const isDefault = (sLat === 29 && nLat === 39 && wLon === -127 && eLon === -116);
+    document.getElementById('station-note').style.display = isDefault ? 'none' : 'block';
+    if (!isDefault) return;
+
+    const id = canvasId.replace("cvs-", ""), box = getPlotBox(canvas, id), geo = getGeoBounds(id, sLat, nLat, wLon, eLon);
+    ctx.save(); ctx.beginPath(); ctx.rect(box.left, box.top, box.width, box.height); ctx.clip();
+
+    for (const p of STATIONS) {
+      if (p.lat < geo.sLat || p.lat > geo.nLat || p.lon < geo.wLon || p.lon > geo.eLon) continue;
+      const x = box.left + ((p.lon - geo.wLon) / (geo.eLon - geo.wLon)) * box.width;
+      const y = box.top + ((geo.nLat - p.lat) / (geo.nLat - geo.sLat)) * box.height;
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0,0,0,0.9)"; ctx.fill();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function updateAllMaps() {
+    const sLat = Number(document.getElementById("latMin").value);
+    const nLat = Number(document.getElementById("latMax").value);
+    const wLon = Number(document.getElementById("lonMin").value);
+    const eLon = Number(document.getElementById("lonMax").value);
     const coords = `[(${sLat}):(${nLat})][(${wLon}):(${eLon})]`;
-    
-    const charmsCoords = `[(${clamp(sLat, 31.3, 43)}):(${clamp(nLat, 31.3, 43)})][(${clamp(wLon, -127.5, -117)}):(${clamp(eLon, -127.5, -117)})]`;
+    const cCoords = `[(${Math.max(31.3, sLat)}):(${Math.min(43, nLat)})][(${Math.max(-127.5, wLon)}):(${Math.min(-117, eLon)})]`;
 
-    function setContent(id, baseUrl, gridPart) {
-        document.getElementById('img-' + id).src = baseUrl + ".png" + gridPart;
-        document.getElementById('lnk-' + id).href = baseUrl + ".graph" + gridPart;
+    function setContent(id, baseUrl, q) {
+      const img = document.getElementById("img-" + id);
+      img.onload = () => drawStations("cvs-" + id, "img-" + id, sLat, nLat, wLon, eLon);
+      img.src = baseUrl + ".png" + q;
+      document.getElementById("lnk-" + id).href = baseUrl + ".graph" + q;
     }
 
-    setContent('chla-d', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
-    setContent('chla-w', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly', `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
-    setContent('sst', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|`);
-    setContent('sst-anom', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW', `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|`);
-    setContent('wind', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day', `?wind_speed[(last)][(10.0)]${coords}`);
-    setContent('sardine', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2', `?potential_habitat_classification[(last)]${coords}`);
-    setContent('charms-pn', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?pseudo_nitzschia[(last)]${charmsCoords}`);
-    setContent('charms-salt', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180', `?salinity[(last)]${charmsCoords}&.colorBar=|||31|35|`);
-    // SSH updated with -0.5 to 0.5 meter limit
-    setContent('ssh', 'https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily', `?ssh[(last)]${coords}&.vars=longitude|latitude|ssh&.colorBar=|||-0.5|0.5|`);
-    setContent('sss', 'https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day', `?sss[(last)][(0.0)]${coords}`);
-}
+    setContent("chla-d", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaDaily", `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
+    setContent("chla-w", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/nesdisVHNnoaa20chlaWeekly", `?chlor_a[(last)][(0.0)]${coords}&.vars=longitude|latitude|chlor_a&.colorBar=Rainbow2|||.03|5|`);
+    setContent("sst", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW", `?CRW_SST[(last)]${coords}&.vars=longitude|latitude|CRW_SST&.colorBar=|||10|22|`);
+    setContent("sst-anom", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW", `?CRW_SSTANOMALY[(last)]${coords}&.vars=longitude|latitude|CRW_SSTANOMALY&.colorBar=BlueWhiteRed|||-2|2|`);
+    setContent("sardine", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/sardine_habitat_viirs_v2", `?potential_habitat_classification[(last)]${coords}`);
+    setContent("charms-pn", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180", `?pseudo_nitzschia[(last)]${cCoords}`);
+    setContent("charms-salt", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/wvcharmV3_3day_LonPM180", `?salinity[(last)]${cCoords}&.colorBar=|||31|35|`);
+    setContent("wind", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdQCwindproducts1day", `?wind_speed[(last)][(10.0)]${coords}`);
+    setContent("ssh", "https://coastwatch.noaa.gov/erddap/griddap/noaacweddymesiplusdaily", `?ssh[(last)]${coords}&.vars=longitude|latitude|ssh&.colorBar=|||-0.5|0.5|`);
+    setContent("sss", "https://coastwatch.pfeg.noaa.gov/erddap/griddap/coastwatchSMOSv662SSS3day", `?sss[(last)][(0.0)]${coords}&.colorBar=|||31|35|`);
+  }
 
-window.onload = updateAllMaps;
+  window.onload = updateAllMaps;
+  window.onresize = () => updateAllMaps();
 </script>
 </body>
 </html>
